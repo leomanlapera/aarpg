@@ -1,15 +1,60 @@
 class_name Player extends CharacterBody2D
 
-@export var move_speed : float = 150.0
+var cardinal_direction : Vector2 = Vector2.DOWN
+var direction : Vector2 = Vector2.ZERO
+var move_speed : float = 100.0
+var state: String = "idle"
+
+@onready var animation_player: AnimationPlayer = $AnimationPlayer
+@onready var sprite_2d: Sprite2D = $Sprite2D
 
 func _physics_process(_delta: float) -> void:
-	var input_vector = Vector2.ZERO
-
-	input_vector.x = Input.get_action_strength("right") - Input.get_action_strength("left")
-	input_vector.y = Input.get_action_strength("down") - Input.get_action_strength("up")
+	direction.x = Input.get_action_strength("right") - Input.get_action_strength("left")
+	direction.y = Input.get_action_strength("down") - Input.get_action_strength("up")
 	
 	# Normalize so diagonal movemnet ins't faster
-	input_vector = input_vector.normalized()
-	velocity = input_vector * move_speed
+	direction = direction.normalized()
+	velocity = direction * move_speed
+	
+	if set_state() == true || set_direction() == true:
+		update_animation()
 
 	move_and_slide()
+
+func set_direction() -> bool:
+	var new_dir : Vector2 = cardinal_direction
+
+	if direction == Vector2.ZERO:
+		return false
+	
+	if direction.y == 0:
+		new_dir = Vector2.LEFT if direction.x < 0 else Vector2.RIGHT
+	elif direction.x == 0:
+		new_dir = Vector2.UP if direction.y < 0 else Vector2.DOWN
+
+	if new_dir == cardinal_direction:
+		return false
+	
+	cardinal_direction = new_dir
+	sprite_2d.scale.x = -1 if cardinal_direction == Vector2.LEFT else 1
+	return true
+
+func set_state() -> bool:
+	var new_state: String = "idle" if direction == Vector2.ZERO else "walk"
+
+	if new_state == state:
+		return false
+
+	state = new_state
+	return true
+
+func update_animation() -> void:
+	animation_player.play(state + "_" + animation_direction())
+
+func animation_direction() -> String:
+	if cardinal_direction == Vector2.DOWN:
+		return "down"
+	elif cardinal_direction == Vector2.UP:
+		return "up"
+	else:
+		return "side"
